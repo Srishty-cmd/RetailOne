@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Menu, X, Store, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,13 +41,13 @@ export default function Navbar() {
 
           {/* Action Buttons (Desktop) */}
           <div className="hidden md:flex items-center gap-4">
-            <button className="text-sm font-medium text-text-sec hover:text-text-main transition-colors duration-150 cursor-pointer">
+            <Link to="/login" className="text-sm font-medium text-text-sec hover:text-text-main transition-colors duration-150 cursor-pointer">
               Login
-            </button>
-            <button className="bg-primary hover:bg-primary-hover text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-150 flex items-center gap-1.5 cursor-pointer">
+            </Link>
+            <Link to="/register" className="bg-primary hover:bg-primary-hover text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-150 flex items-center gap-1.5 cursor-pointer">
               Get Started
               <ArrowRight className="h-4 w-4" />
-            </button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -75,13 +76,13 @@ export default function Navbar() {
             </a>
           ))}
           <div className="border-t border-border-main pt-4 flex flex-col gap-3 px-3">
-            <button className="w-full text-center py-2.5 font-medium text-text-sec hover:text-text-main transition-colors duration-150 cursor-pointer">
+            <Link to="/login" className="w-full text-center py-2.5 font-medium text-text-sec hover:text-text-main transition-colors duration-150 cursor-pointer">
               Login
-            </button>
-            <button className="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-lg font-semibold shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
+            </Link>
+            <Link to="/register" className="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-lg font-semibold shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
               Get Started
               <ArrowRight className="h-4 w-4" />
-            </button>
+            </Link>
           </div>
         </div>
       )}

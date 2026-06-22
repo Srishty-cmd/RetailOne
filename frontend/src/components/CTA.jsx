@@ -1,4 +1,5 @@
 import { ArrowRight, Calendar, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function CTA() {
   return (
@@ -29,10 +30,10 @@ export default function CTA() {
 
             {/* Actions Grid */}
             <div className="mt-8 flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-stretch sm:items-center justify-center">
-              <button className="bg-white hover:bg-bg-sec text-primary px-8 py-4 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer">
+              <Link to="/register" className="bg-white hover:bg-bg-sec text-primary px-8 py-4 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer">
                 Start Free Trial
                 <ArrowRight className="h-4.5 w-4.5 text-primary" />
-              </button>
+              </Link>
               <button className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-8 py-4 rounded-xl font-bold transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer">
                 <Calendar className="h-4.5 w-4.5" />
                 Schedule Demo

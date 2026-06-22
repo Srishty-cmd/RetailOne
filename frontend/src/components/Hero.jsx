@@ -1,4 +1,5 @@
 import { ArrowRight, Play, TrendingUp, AlertTriangle, Globe, ShoppingCart, DollarSign, Package } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Hero() {
   return (
@@ -26,10 +27,10 @@ export default function Hero() {
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-              <button className="bg-primary hover:bg-primary-hover text-white px-6 py-3.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer">
+              <Link to="/register" className="bg-primary hover:bg-primary-hover text-white px-6 py-3.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer">
                 Get Started
                 <ArrowRight className="h-4 w-4" />
-              </button>
+              </Link>
               <button className="border border-border-main hover:bg-bg-sec text-text-main px-6 py-3.5 rounded-xl font-semibold transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer">
                 <Play className="h-4 w-4 text-primary fill-primary/25" />
                 Watch Demo
