@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Lock, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { resetPassword } from '../services/authService';
+import { STRONG_PASSWORD_MESSAGE, STRONG_PASSWORD_REGEX } from '../utils/validation';
 
 const ResetPassword: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -13,18 +14,24 @@ const ResetPassword: React.FC = () => {
   const [serverError, setServerError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
+  const isTokenMissing = !token;
+
+  useEffect(() => {
+    if (isTokenMissing) {
+      setServerError('Reset token is missing from URL. Please request a new password reset link.');
+    }
+  }, [isTokenMissing]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (!strongPasswordRegex.test(formData.password)) {
-      newErrors.password = 'Password must be at least 8 characters, and include at least one uppercase letter, one lowercase letter, one number, and one special character.';
+    } else if (!STRONG_PASSWORD_REGEX.test(formData.password)) {
+      newErrors.password = STRONG_PASSWORD_MESSAGE;
     }
 
     if (!formData.confirmPassword) {
@@ -38,14 +45,15 @@ const ResetPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors = validate();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+
+    if (isTokenMissing) {
+      setServerError('Reset token is missing from URL. Please request a new password reset link.');
       return;
     }
 
-    if (!token) {
-      setServerError('Reset token is missing from URL.');
+    const newErrors = validate();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -55,8 +63,8 @@ const ResetPassword: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await resetPassword(token, formData.password);
-      setSuccessMsg('Password has been reset successfully! Redirecting to login...');
+      const data = await resetPassword(token!, formData.password);
+      setSuccessMsg(data.message || 'Password has been reset successfully! Redirecting to login...');
       setTimeout(() => {
         navigate('/login');
       }, 2000);
@@ -75,9 +83,11 @@ const ResetPassword: React.FC = () => {
     }
   };
 
+  const isFormDisabled = isLoading || !!successMsg || isTokenMissing;
+
   return (
-    <AuthLayout 
-      title="Create new password" 
+    <AuthLayout
+      title="Create new password"
       subtitle="Enter your new secure password below."
     >
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -107,8 +117,10 @@ const ResetPassword: React.FC = () => {
               id="password"
               name="password"
               type="password"
+              autoComplete="new-password"
               placeholder="••••••••"
-              className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.password ? 'border-red-500 focus:ring-red-200' : 'border-border-main focus:border-primary focus:ring-primary-light'} rounded-lg text-text-main shadow-sm focus:outline-none focus:ring-4 transition-all duration-200`}
+              disabled={isFormDisabled}
+              className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.password ? 'border-red-500 focus:ring-red-200' : 'border-border-main focus:border-primary focus:ring-primary-light'} rounded-lg text-text-main shadow-sm focus:outline-none focus:ring-4 transition-all duration-200 disabled:bg-gray-50 disabled:cursor-not-allowed`}
               value={formData.password}
               onChange={handleChange}
             />
@@ -132,8 +144,10 @@ const ResetPassword: React.FC = () => {
               id="confirmPassword"
               name="confirmPassword"
               type="password"
+              autoComplete="new-password"
               placeholder="••••••••"
-              className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.confirmPassword ? 'border-red-500 focus:ring-red-200' : 'border-border-main focus:border-primary focus:ring-primary-light'} rounded-lg text-text-main shadow-sm focus:outline-none focus:ring-4 transition-all duration-200`}
+              disabled={isFormDisabled}
+              className={`w-full pl-10 pr-4 py-2.5 bg-white border ${errors.confirmPassword ? 'border-red-500 focus:ring-red-200' : 'border-border-main focus:border-primary focus:ring-primary-light'} rounded-lg text-text-main shadow-sm focus:outline-none focus:ring-4 transition-all duration-200 disabled:bg-gray-50 disabled:cursor-not-allowed`}
               value={formData.confirmPassword}
               onChange={handleChange}
             />
@@ -147,11 +161,28 @@ const ResetPassword: React.FC = () => {
 
         <button
           type="submit"
-          disabled={isLoading}
-          className={`w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white ${isLoading ? 'bg-primary/70 cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'} focus:outline-none focus:ring-4 focus:ring-primary-light transition-all duration-200 active:scale-[0.98]`}
+          disabled={isFormDisabled}
+          className={`w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white ${isFormDisabled ? 'bg-primary/70 cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'} focus:outline-none focus:ring-4 focus:ring-primary-light transition-all duration-200 active:scale-[0.98]`}
         >
-          {isLoading ? 'Resetting Password...' : 'Reset Password'}
+          {isLoading ? 'Resetting Password...' : successMsg ? 'Password Reset' : 'Reset Password'}
         </button>
+
+        <Link
+          to="/login"
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-border-main rounded-lg shadow-sm text-sm font-medium text-text-main bg-white hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-primary-light transition-all duration-200"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Login
+        </Link>
+
+        {isTokenMissing && (
+          <div className="text-center text-sm text-text-sec">
+            Need a new link?{' '}
+            <Link to="/forgot-password" className="font-medium text-primary hover:text-primary-hover transition-colors">
+              Request password reset
+            </Link>
+          </div>
+        )}
       </form>
     </AuthLayout>
   );

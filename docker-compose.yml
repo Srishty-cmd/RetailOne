@@ -30,6 +30,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your_super_secret_access_token_key_12345
       - JWT_REFRESH_SECRET=your_super_secret_refresh_token_key_54321
+      - FRONTEND_URL=http://localhost:5173
       - NODE_ENV=development
     depends_on:
       - mongodb

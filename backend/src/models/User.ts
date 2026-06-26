@@ -48,7 +48,8 @@ const UserSchema: Schema = new Schema({
   },
   resetPasswordToken: {
     type: String,
-    default: null
+    default: null,
+    select: false
   },
   resetPasswordExpire: {
     type: Date,

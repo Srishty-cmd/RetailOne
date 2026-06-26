@@ -5,8 +5,16 @@ import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_access_token_secret_key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your_refresh_token_secret_key';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const ACCESS_TOKEN_EXPIRY = '15m'; // Short-lived access token
 const REFRESH_TOKEN_EXPIRY = '7d'; // Long-lived refresh token
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+
+const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const EMAIL_REGEX = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+
+const hashResetToken = (token: string): string =>
+  crypto.createHash('sha256').update(token).digest('hex');
 
 export interface AuthRequest extends Request {
   user?: {
@@ -59,9 +67,7 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Strong password validation
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!strongPasswordRegex.test(password)) {
+    if (!STRONG_PASSWORD_REGEX.test(password)) {
       return res.status(400).json({
         message: 'Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
       });
@@ -224,39 +230,38 @@ export const getUserProfile = async (req: AuthRequest, res: Response, next: Next
 export const forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { email } = req.body;
-    if (!email) {
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+    if (!normalizedEmail) {
       return res.status(400).json({ message: 'Please provide email address' });
     }
 
-    const user = await User.findOne({ email });
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(404).json({ message: 'No account found with that email' });
     }
 
-    // Generate reset token
-    const resetToken = crypto.randomBytes(20).toString('hex');
+    const resetToken = crypto.randomBytes(32).toString('hex');
 
-    // Hash token and set in user document
-    user.resetPasswordToken = crypto
-      .createHash('sha256')
-      .update(resetToken)
-      .digest('hex');
-    
-    // Set token expiration (1 hour)
-    user.resetPasswordExpire = new Date(Date.now() + 60 * 60 * 1000);
+    user.resetPasswordToken = hashResetToken(resetToken);
+    user.resetPasswordExpire = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
     await user.save();
 
-    // Log the link in development console
-    const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
+    const resetUrl = `${FRONTEND_URL}/reset-password/${resetToken}`;
     console.log('\n======================================================');
     console.log('PASSWORD RESET LINK GENERATED (DEVELOPMENT):');
     console.log(resetUrl);
+    console.log('Expires in 1 hour');
     console.log('======================================================\n');
 
     res.status(200).json({
       success: true,
-      message: 'Password reset link generated and logged to console.'
+      message: 'Password reset link generated. Check the server console for the link.'
     });
   } catch (error) {
     next(error);
@@ -271,34 +276,31 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     const { password } = req.body;
     const { token } = req.params;
 
+    if (!token || Array.isArray(token)) {
+      return res.status(400).json({ message: 'Reset token is required' });
+    }
+
     if (!password) {
       return res.status(400).json({ message: 'Please provide new password' });
     }
 
-    // Validate strong password
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!strongPasswordRegex.test(password)) {
+    if (!STRONG_PASSWORD_REGEX.test(password)) {
       return res.status(400).json({
         message: 'Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
       });
     }
 
-    // Hash token to compare with DB hashed token
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(token as string)
-      .digest('hex');
+    const hashedToken = hashResetToken(token);
 
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpire: { $gt: new Date() }
-    });
+    }).select('+password');
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired password reset token' });
     }
 
-    // Set new password (pre-save hook will hash it automatically)
     user.password = password;
     user.resetPasswordToken = null;
     user.resetPasswordExpire = null;
@@ -307,7 +309,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 
     res.status(200).json({
       success: true,
-      message: 'Password reset successful.'
+      message: 'Password reset successful. You can now sign in with your new password.'
     });
   } catch (error) {
     next(error);
