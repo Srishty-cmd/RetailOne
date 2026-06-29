@@ -11,6 +11,7 @@ const db_1 = __importDefault(require("./config/db"));
 const redis_1 = require("./config/redis");
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const healthRoutes_1 = __importDefault(require("./routes/healthRoutes"));
+const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const loggerMiddleware_1 = require("./middleware/loggerMiddleware");
 const securityMiddleware_1 = require("./middleware/securityMiddleware");
 const errorMiddleware_1 = require("./middleware/errorMiddleware");
@@ -24,6 +25,7 @@ app.use(securityMiddleware_1.securityMiddleware); // Helmet and CORS configured 
 // Routes
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/health', healthRoutes_1.default);
+app.use('/api/products', productRoutes_1.default);
 // Root Endpoint
 app.get('/', (req, res) => {
     res.send('RetailOne API is running (TypeScript)...');

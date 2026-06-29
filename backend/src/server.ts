@@ -7,6 +7,7 @@ import connectDB from './config/db';
 import { connectRedis } from './config/redis';
 import authRoutes from './routes/authRoutes';
 import healthRoutes from './routes/healthRoutes';
+import productRoutes from './routes/productRoutes';
 import { loggerMiddleware } from './middleware/loggerMiddleware';
 import { securityMiddleware } from './middleware/securityMiddleware';
 import { errorMiddleware } from './middleware/errorMiddleware';
@@ -23,6 +24,7 @@ app.use(securityMiddleware); // Helmet and CORS configured for credentials
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/products', productRoutes);
 
 // Root Endpoint
 app.get('/', (req: Request, res: Response) => {
