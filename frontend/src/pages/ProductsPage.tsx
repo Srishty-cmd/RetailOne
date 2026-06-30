@@ -20,8 +20,10 @@ import {
   X, 
   Check, 
   Info,
-  Layers,
-  Archive
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Upload
 } from 'lucide-react';
 
 interface Toast {
@@ -31,7 +33,6 @@ interface Toast {
 }
 
 const PRESET_CATEGORIES = ['Electronics', 'Furniture', 'Accessories', 'Apparel', 'Food & Beverage', 'Cosmetics', 'Fitness', 'Others'];
-const PRESET_UNITS = ['pcs', 'kg', 'g', 'lbs', 'box', 'pack', 'ml', 'liters'];
 
 const ProductsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -52,6 +53,12 @@ const ProductsPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [categories, setCategories] = useState<string[]>(PRESET_CATEGORIES);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalItems, setTotalItems] = useState<number>(0);
+  const itemsPerPage = 10;
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -61,17 +68,18 @@ const ProductsPage: React.FC = () => {
   const [modalError, setModalError] = useState<string | null>(null);
 
   // Form State
-  const [formName, setFormName] = useState('');
+  const [formProductName, setFormProductName] = useState('');
   const [formSku, setFormSku] = useState('');
-  const [formDescription, setFormDescription] = useState('');
+  const [formBarcode, setFormBarcode] = useState('');
   const [formCategory, setFormCategory] = useState('Electronics');
   const [formCustomCategory, setFormCustomCategory] = useState('');
   const [formIsCustomCategory, setFormIsCustomCategory] = useState(false);
   const [formBrand, setFormBrand] = useState('');
-  const [formPrice, setFormPrice] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formSellingPrice, setFormSellingPrice] = useState('');
   const [formCostPrice, setFormCostPrice] = useState('');
-  const [formStock, setFormStock] = useState('0');
-  const [formUnit, setFormUnit] = useState('pcs');
+  const [formQuantity, setFormQuantity] = useState('0');
+  const [formMinimumStock, setFormMinimumStock] = useState('5');
   const [formStatus, setFormStatus] = useState<'Active' | 'Inactive'>('Active');
   const [formImage, setFormImage] = useState('');
 
@@ -87,11 +95,14 @@ const ProductsPage: React.FC = () => {
   };
 
   // Fetch Products
-  const fetchProductsList = async () => {
+  const fetchProductsList = async (page = currentPage) => {
     try {
       setLoading(true);
       setError(null);
-      const params: any = {};
+      const params: any = {
+        page,
+        limit: itemsPerPage
+      };
       if (searchQuery.trim()) {
         params.search = searchQuery.trim();
       }
@@ -105,6 +116,9 @@ const ProductsPage: React.FC = () => {
       const response = await getProducts(params);
       if (response.success) {
         setProducts(response.data);
+        setTotalItems(response.pagination.total);
+        setTotalPages(response.pagination.pages);
+        setCurrentPage(response.pagination.page);
         
         // Dynamically build category list based on existing DB items combined with presets
         const dbCategories = response.data.map(p => p.category);
@@ -121,29 +135,63 @@ const ProductsPage: React.FC = () => {
     }
   };
 
+  // Run fetch on search/filter changes - reset page to 1
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchProductsList();
+      fetchProductsList(1);
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, selectedCategory, selectedStatus]);
 
+  // Run fetch on page change
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      fetchProductsList(page);
+    }
+  };
+
+  // Reset Filters
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('All');
+    setSelectedStatus('All');
+    setCurrentPage(1);
+  };
+
+  // Image Upload handler (Base64 conversion)
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setModalError('Image size exceeds 2MB limit.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Open Modal for Add
   const handleOpenAddModal = () => {
     if (!canModify) return;
     setEditingProduct(null);
-    setFormName('');
+    setFormProductName('');
     setFormSku('');
-    setFormDescription('');
+    setFormBarcode('');
     setFormCategory('Electronics');
     setFormCustomCategory('');
     setFormIsCustomCategory(false);
     setFormBrand('');
-    setFormPrice('');
+    setFormDescription('');
+    setFormSellingPrice('');
     setFormCostPrice('');
-    setFormStock('0');
-    setFormUnit('pcs');
+    setFormQuantity('0');
+    setFormMinimumStock('5');
     setFormStatus('Active');
     setFormImage('');
     setModalError(null);
@@ -154,9 +202,9 @@ const ProductsPage: React.FC = () => {
   const handleOpenEditModal = (product: Product) => {
     if (!canModify) return;
     setEditingProduct(product);
-    setFormName(product.name);
+    setFormProductName(product.productName);
     setFormSku(product.sku);
-    setFormDescription(product.description || '');
+    setFormBarcode(product.barcode || '');
     
     if (PRESET_CATEGORIES.includes(product.category)) {
       setFormCategory(product.category);
@@ -168,10 +216,11 @@ const ProductsPage: React.FC = () => {
     }
     
     setFormBrand(product.brand || '');
-    setFormPrice(product.price.toString());
+    setFormDescription(product.description || '');
+    setFormSellingPrice(product.sellingPrice.toString());
     setFormCostPrice(product.costPrice.toString());
-    setFormStock(product.stock.toString());
-    setFormUnit(product.unit);
+    setFormQuantity(product.quantity.toString());
+    setFormMinimumStock(product.minimumStock.toString());
     setFormStatus(product.status);
     setFormImage(product.image || '');
     setModalError(null);
@@ -191,30 +240,33 @@ const ProductsPage: React.FC = () => {
     if (!canModify) return;
 
     // Frontend Validations
-    if (!formName.trim()) return setModalError('Product name is required');
+    if (!formProductName.trim()) return setModalError('Product name is required');
     if (!formSku.trim()) return setModalError('SKU is required');
     
     const finalCategory = formIsCustomCategory ? formCustomCategory.trim() : formCategory;
     if (!finalCategory) return setModalError('Category is required');
 
-    const priceNum = parseFloat(formPrice);
-    const costNum = parseFloat(formCostPrice);
-    const stockNum = parseFloat(formStock);
+    const sellingPriceNum = parseFloat(formSellingPrice);
+    const costPriceNum = parseFloat(formCostPrice);
+    const quantityNum = parseInt(formQuantity);
+    const minimumStockNum = parseInt(formMinimumStock);
 
-    if (isNaN(priceNum) || priceNum < 0) return setModalError('Price must be a valid positive number');
-    if (isNaN(costNum) || costNum < 0) return setModalError('Cost price must be a valid positive number');
-    if (isNaN(stockNum) || stockNum < 0) return setModalError('Stock must be a valid positive number');
+    if (isNaN(sellingPriceNum) || sellingPriceNum < 0) return setModalError('Selling price must be a valid positive number');
+    if (isNaN(costPriceNum) || costPriceNum < 0) return setModalError('Cost price must be a valid positive number');
+    if (isNaN(quantityNum) || quantityNum < 0) return setModalError('Quantity must be a valid positive integer');
+    if (isNaN(minimumStockNum) || minimumStockNum < 0) return setModalError('Minimum stock level must be a valid positive integer');
 
     const productInput: ProductInput = {
-      name: formName.trim(),
+      productName: formProductName.trim(),
       sku: formSku.trim().toUpperCase(),
-      description: formDescription.trim() || undefined,
+      barcode: formBarcode.trim() || undefined,
       category: finalCategory,
       brand: formBrand.trim() || undefined,
-      price: priceNum,
-      costPrice: costNum,
-      stock: stockNum,
-      unit: formUnit,
+      description: formDescription.trim() || undefined,
+      sellingPrice: sellingPriceNum,
+      costPrice: costPriceNum,
+      quantity: quantityNum,
+      minimumStock: minimumStockNum,
       status: formStatus,
       image: formImage.trim() || undefined
     };
@@ -227,17 +279,17 @@ const ProductsPage: React.FC = () => {
         // Update
         const response = await updateProduct(editingProduct._id, productInput);
         if (response.success) {
-          showToast(`Product "${productInput.name}" updated successfully.`);
+          showToast(`Product "${productInput.productName}" updated successfully.`);
           setIsModalOpen(false);
-          fetchProductsList();
+          fetchProductsList(currentPage);
         }
       } else {
         // Create
         const response = await createProduct(productInput);
         if (response.success) {
-          showToast(`Product "${productInput.name}" created successfully.`);
+          showToast(`Product "${productInput.productName}" created successfully.`);
           setIsModalOpen(false);
-          fetchProductsList();
+          fetchProductsList(1);
         }
       }
     } catch (err: any) {
@@ -256,10 +308,14 @@ const ProductsPage: React.FC = () => {
       setModalLoading(true);
       const response = await deleteProduct(productToDelete._id);
       if (response.success) {
-        showToast(`Product "${productToDelete.name}" deleted successfully.`, 'success');
+        showToast(`Product "${productToDelete.productName}" deleted successfully.`, 'success');
         setIsDeleting(false);
         setProductToDelete(null);
-        fetchProductsList();
+        
+        // Adjust page if current page becomes empty
+        const remainingOnPage = products.length - 1;
+        const newPage = remainingOnPage === 0 && currentPage > 1 ? currentPage - 1 : currentPage;
+        fetchProductsList(newPage);
       }
     } catch (err: any) {
       console.error('Error deleting product:', err);
@@ -270,12 +326,12 @@ const ProductsPage: React.FC = () => {
   };
 
   // Calculate Margin Helper
-  const priceVal = parseFloat(formPrice) || 0;
+  const priceVal = parseFloat(formSellingPrice) || 0;
   const costVal = parseFloat(formCostPrice) || 0;
   const marginPercentage = priceVal > 0 ? (((priceVal - costVal) / priceVal) * 100).toFixed(1) : '0.0';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Toast Notification Container */}
       <div className="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 max-w-sm">
         {toasts.map(toast => (
@@ -308,7 +364,7 @@ const ProductsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-display font-bold text-text-main">Products</h1>
           <p className="text-sm text-text-sec mt-1">
-            Manage your omnichannel catalog, pricing, and live inventory.
+            Manage all store products
           </p>
         </div>
         {canModify && (
@@ -324,41 +380,50 @@ const ProductsPage: React.FC = () => {
 
       {/* Filter and Query Section */}
       <div className="bg-white border border-border-main rounded-2xl shadow-xs p-5 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-2 relative">
+        <div className="flex flex-col lg:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-sec w-4.5 h-4.5" />
             <input
               type="text"
-              placeholder="Search products by name or SKU..."
+              placeholder="Search products by name, SKU or barcode..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-bg-sec border border-border-main focus:border-primary focus:bg-white rounded-xl text-sm transition-colors duration-200 outline-none text-text-main"
             />
           </div>
 
-          <div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2.5 bg-bg-sec border border-border-main focus:border-primary focus:bg-white rounded-xl text-sm transition-colors duration-200 outline-none text-text-main cursor-pointer"
-            >
-              <option value="All">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:w-auto shrink-0">
+            <div className="min-w-[160px]">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2.5 bg-bg-sec border border-border-main focus:border-primary focus:bg-white rounded-xl text-sm transition-colors duration-200 outline-none text-text-main cursor-pointer"
+              >
+                <option value="All">Category Filter</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-2.5 bg-bg-sec border border-border-main focus:border-primary focus:bg-white rounded-xl text-sm transition-colors duration-200 outline-none text-text-main cursor-pointer"
+            <div className="min-w-[160px]">
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-full px-3 py-2.5 bg-bg-sec border border-border-main focus:border-primary focus:bg-white rounded-xl text-sm transition-colors duration-200 outline-none text-text-main cursor-pointer"
+              >
+                <option value="All">Status Filter</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+
+            <button
+              onClick={handleResetFilters}
+              className="px-4 py-2.5 bg-bg-sec hover:bg-border-main text-text-main text-sm font-medium rounded-xl border border-border-main cursor-pointer transition-colors duration-150"
             >
-              <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+              Reset Filters
+            </button>
           </div>
         </div>
       </div>
@@ -368,7 +433,7 @@ const ProductsPage: React.FC = () => {
         {loading ? (
           <div className="p-16 flex flex-col items-center justify-center space-y-4">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm text-text-sec">Loading product inventory...</p>
+            <p className="text-sm text-text-sec">Loading products catalog...</p>
           </div>
         ) : error ? (
           <div className="p-12 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-3">
@@ -376,20 +441,20 @@ const ProductsPage: React.FC = () => {
             <h3 className="font-semibold text-text-main">Error loading products</h3>
             <p className="text-sm text-text-sec">{error}</p>
             <button 
-              onClick={fetchProductsList}
+              onClick={() => fetchProductsList(currentPage)}
               className="px-4 py-2 bg-bg-sec hover:bg-border-main border border-border-main text-sm font-medium rounded-xl transition-all"
             >
               Try Again
             </button>
           </div>
         ) : products.length === 0 ? (
-          <div className="p-16 flex flex-col items-center justify-center text-center space-y-4 max-w-md mx-auto">
-            <div className="w-16 h-16 bg-bg-sec rounded-full flex items-center justify-center text-text-sec">
-              <Package className="w-8 h-8" />
+          <div className="p-16 flex flex-col items-center justify-center text-center space-y-6 max-w-md mx-auto">
+            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-primary border border-emerald-100 shadow-sm animate-pulse">
+              <Package className="w-10 h-10" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-text-main">No products found</h3>
-              <p className="text-sm text-text-sec mt-1">
+              <h3 className="text-lg font-semibold text-text-main font-display">No Products Found</h3>
+              <p className="text-sm text-text-sec mt-2 leading-relaxed">
                 {searchQuery || selectedCategory !== 'All' || selectedStatus !== 'All'
                   ? 'Try modifying your search queries or filter parameters.'
                   : 'Start adding items to catalog to begin checkout sales and inventory counts.'}
@@ -398,149 +463,174 @@ const ProductsPage: React.FC = () => {
             {canModify && !searchQuery && selectedCategory === 'All' && selectedStatus === 'All' && (
               <button
                 onClick={handleOpenAddModal}
-                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-xl shadow-xs"
+                className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-xl shadow-xs cursor-pointer duration-150 active:scale-95"
               >
-                Add Your First Product
+                Add First Product
               </button>
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-bg-sec border-b border-border-main text-xs font-semibold text-text-sec uppercase tracking-wider">
-                  <th className="px-6 py-4">Product Info</th>
-                  <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4 text-right">Selling Price</th>
-                  <th className="px-6 py-4 text-right">Cost Price</th>
-                  <th className="px-6 py-4 text-center">Margin</th>
-                  <th className="px-6 py-4 text-center">Stock Level</th>
-                  <th className="px-6 py-4 text-center">Status</th>
-                  {canModify && <th className="px-6 py-4 text-right">Actions</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-main text-sm text-text-main">
-                {products.map((product) => {
-                  const profitMargin = product.price > 0 
-                    ? (((product.price - product.costPrice) / product.price) * 100).toFixed(0) 
-                    : '0';
+          <div className="flex flex-col">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-bg-sec border-b border-border-main text-xs font-semibold text-text-sec uppercase tracking-wider">
+                    <th className="px-6 py-4">Image</th>
+                    <th className="px-6 py-4">Product Name</th>
+                    <th className="px-6 py-4">SKU</th>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4 text-right">Selling Price</th>
+                    <th className="px-6 py-4 text-center">Available Stock</th>
+                    <th className="px-6 py-4 text-center">Status</th>
+                    {canModify && <th className="px-6 py-4 text-right">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-main text-sm text-text-main">
+                  {products.map((product) => {
+                    const isOutOfStock = product.quantity <= 0;
+                    const isLowStock = product.quantity > 0 && product.quantity <= product.minimumStock;
 
-                  // Calculate stock badge colors
-                  const isOutOfStock = product.stock <= 0;
-                  const isLowStock = product.stock > 0 && product.stock <= 10;
-
-                  return (
-                    <tr key={product._id} className="hover:bg-bg-sec/50 transition-colors duration-150 group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-lg bg-bg-sec border border-border-main flex items-center justify-center text-lg shadow-inner select-none overflow-hidden shrink-0">
+                    return (
+                      <tr key={product._id} className="hover:bg-bg-sec/40 transition-colors duration-150 group">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="w-12 h-12 rounded-lg bg-bg-sec border border-border-main flex items-center justify-center shadow-inner overflow-hidden shrink-0 select-none">
                             {product.image ? (
-                              product.image.startsWith('http') || product.image.startsWith('/') ? (
-                                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                              product.image.startsWith('http') || product.image.startsWith('data:image') ? (
+                                <img src={product.image} alt={product.productName} className="w-full h-full object-cover" />
                               ) : (
-                                <span>{product.image}</span>
+                                <span className="text-xl">{product.image}</span>
                               )
                             ) : (
-                              <Package className="w-5 h-5 text-text-sec" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <span className="font-semibold block truncate text-text-main max-w-xs sm:max-w-md">
-                              {product.name}
-                            </span>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-xs text-text-sec bg-bg-sec px-1.5 py-0.5 rounded border border-border-main font-mono">
-                                {product.sku}
-                              </span>
-                              {product.brand && (
-                                <span className="text-xs text-text-sec">
-                                  by {product.brand}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium bg-primary-light text-primary border border-primary/20">
-                          <Tag className="w-3 h-3 mr-1" />
-                          {product.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium whitespace-nowrap">
-                        ${product.price.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 text-right text-text-sec whitespace-nowrap">
-                        ${product.costPrice.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 text-center whitespace-nowrap">
-                        <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-md ${
-                          parseFloat(profitMargin) >= 30 
-                            ? 'text-emerald-700 bg-emerald-50' 
-                            : parseFloat(profitMargin) >= 10
-                              ? 'text-amber-700 bg-amber-50'
-                              : 'text-rose-700 bg-rose-50'
-                        }`}>
-                          {profitMargin}%
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center whitespace-nowrap">
-                        <div className="flex flex-col items-center">
-                          <span className={`font-semibold ${
-                            isOutOfStock 
-                              ? 'text-rose-600' 
-                              : isLowStock 
-                                ? 'text-amber-600' 
-                                : 'text-text-main'
-                          }`}>
-                            {product.stock} {product.unit}
-                          </span>
-                          {isOutOfStock ? (
-                            <span className="text-[10px] text-rose-500 font-medium">Out of stock</span>
-                          ) : isLowStock ? (
-                            <span className="text-[10px] text-amber-500 font-medium">Low stock</span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                          product.status === 'Active'
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                            : 'bg-gray-100 border-gray-200 text-gray-700'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                            product.status === 'Active' ? 'bg-emerald-500' : 'bg-gray-400'
-                          }`} />
-                          {product.status}
-                        </span>
-                      </td>
-                      {canModify && (
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
-                          <div className="flex justify-end gap-1.5">
-                            <button
-                              onClick={() => handleOpenEditModal(product)}
-                              title="Edit product details"
-                              className="p-1.5 hover:bg-primary-light hover:text-primary rounded-lg text-text-sec transition-colors cursor-pointer"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            {canDelete && (
-                              <button
-                                onClick={() => handleOpenDeleteModal(product)}
-                                title="Delete product"
-                                className="p-1.5 hover:bg-rose-50 hover:text-rose-600 rounded-lg text-text-sec transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <Package className="w-6 h-6 text-text-sec" />
                             )}
                           </div>
                         </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        <td className="px-6 py-4">
+                          <div className="min-w-0">
+                            <span className="font-semibold block truncate text-text-main max-w-xs sm:max-w-md">
+                              {product.productName}
+                            </span>
+                            {product.brand && (
+                              <span className="text-xs text-text-sec block mt-0.5">
+                                by {product.brand}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-xs text-text-sec bg-bg-sec px-2 py-1 rounded border border-border-main font-mono">
+                            {product.sku}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium bg-primary-light text-primary border border-primary/20">
+                            <Tag className="w-3 h-3 mr-1" />
+                            {product.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right font-medium whitespace-nowrap">
+                          ${product.sellingPrice.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-center whitespace-nowrap">
+                          <div className="flex flex-col items-center">
+                            <span className={`font-semibold ${
+                              isOutOfStock 
+                                ? 'text-rose-600' 
+                                : isLowStock 
+                                  ? 'text-amber-600' 
+                                  : 'text-text-main'
+                            }`}>
+                              {product.quantity}
+                            </span>
+                            {isOutOfStock ? (
+                              <span className="text-[10px] text-rose-500 font-medium">Out of stock</span>
+                            ) : isLowStock ? (
+                              <span className="text-[10px] text-amber-500 font-medium">Low stock (&le;{product.minimumStock})</span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                            product.status === 'Active'
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              : 'bg-gray-100 border-gray-200 text-gray-700'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                              product.status === 'Active' ? 'bg-emerald-500' : 'bg-gray-400'
+                            }`} />
+                            {product.status}
+                          </span>
+                        </td>
+                        {canModify && (
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenEditModal(product)}
+                                title="Edit Product"
+                                className="p-2 hover:bg-primary-light hover:text-primary rounded-lg text-text-sec transition-colors cursor-pointer"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              {canDelete && (
+                                <button
+                                  onClick={() => handleOpenDeleteModal(product)}
+                                  title="Delete Product"
+                                  className="p-2 hover:bg-rose-50 hover:text-rose-600 rounded-lg text-text-sec transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Panel */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-border-main flex items-center justify-between bg-bg-sec/30">
+                <div className="text-xs text-text-sec">
+                  Showing <span className="font-semibold">{Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)}</span> to{' '}
+                  <span className="font-semibold">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
+                  <span className="font-semibold">{totalItems}</span> products
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 border border-border-main rounded-lg bg-white text-text-main disabled:opacity-40 disabled:cursor-not-allowed hover:bg-bg-sec cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  
+                  {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => handlePageChange(p)}
+                      className={`px-3 py-1 text-xs font-medium rounded-lg border cursor-pointer ${
+                        currentPage === p
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-text-main border-border-main hover:bg-bg-sec'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 border border-border-main rounded-lg bg-white text-text-main disabled:opacity-40 disabled:cursor-not-allowed hover:bg-bg-sec cursor-pointer"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -584,14 +674,14 @@ const ProductsPage: React.FC = () => {
                     type="text"
                     required
                     placeholder="e.g. Premium Wireless Headphones"
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main"
+                    value={formProductName}
+                    onChange={(e) => setFormProductName(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-text-sec uppercase tracking-wider block">
-                    SKU / Barcode <span className="text-rose-500">*</span>
+                    SKU <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -599,23 +689,23 @@ const ProductsPage: React.FC = () => {
                     placeholder="e.g. WH-PH100-GRY"
                     value={formSku}
                     onChange={(e) => setFormSku(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main font-mono uppercase"
+                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main font-mono uppercase"
                   />
                 </div>
               </div>
 
-              {/* Grid 2: Brand, Category, Unit */}
+              {/* Grid 2: Barcode, Category, Brand */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-text-sec uppercase tracking-wider block">
-                    Brand / Manufacturer
+                    Barcode
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Sony"
-                    value={formBrand}
-                    onChange={(e) => setFormBrand(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main"
+                    placeholder="e.g. 451039485"
+                    value={formBarcode}
+                    onChange={(e) => setFormBarcode(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main"
                   />
                 </div>
 
@@ -630,7 +720,7 @@ const ProductsPage: React.FC = () => {
                         placeholder="Type category..."
                         value={formCustomCategory}
                         onChange={(e) => setFormCustomCategory(e.target.value)}
-                        className="w-full pl-3 pr-8 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main"
+                        className="w-full pl-3 pr-8 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main"
                       />
                       <button
                         type="button"
@@ -655,7 +745,7 @@ const ProductsPage: React.FC = () => {
                           setFormCategory(e.target.value);
                         }
                       }}
-                      className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main cursor-pointer"
+                      className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main cursor-pointer"
                     >
                       {PRESET_CATEGORIES.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -667,21 +757,19 @@ const ProductsPage: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-text-sec uppercase tracking-wider block">
-                    Unit of Measurement <span className="text-rose-500">*</span>
+                    Brand / Manufacturer
                   </label>
-                  <select
-                    value={formUnit}
-                    onChange={(e) => setFormUnit(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main cursor-pointer"
-                  >
-                    {PRESET_UNITS.map(u => (
-                      <option key={u} value={u}>{u}</option>
-                    ))}
-                  </select>
+                  <input
+                    type="text"
+                    placeholder="e.g. Sony"
+                    value={formBrand}
+                    onChange={(e) => setFormBrand(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main"
+                  />
                 </div>
               </div>
 
-              {/* Grid 3: Description */}
+              {/* Description */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-text-sec uppercase tracking-wider block">
                   Product Description
@@ -691,18 +779,18 @@ const ProductsPage: React.FC = () => {
                   placeholder="Provide details about features, specs, and packaging..."
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main resize-none"
+                  className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main resize-none"
                 />
               </div>
 
-              {/* Grid 4: Pricing and Stock */}
+              {/* Pricing & Stock Card */}
               <div className="bg-bg-sec/40 p-4 border border-border-main rounded-xl space-y-4">
                 <span className="text-xs font-bold text-text-main uppercase tracking-wider block">
                   Pricing & Inventory Control
                 </span>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="space-y-1.5 sm:col-span-1">
                     <label className="text-xs font-semibold text-text-sec block">
                       Selling Price ($) <span className="text-rose-500">*</span>
                     </label>
@@ -712,13 +800,13 @@ const ProductsPage: React.FC = () => {
                       required
                       min="0"
                       placeholder="0.00"
-                      value={formPrice}
-                      onChange={(e) => setFormPrice(e.target.value)}
+                      value={formSellingPrice}
+                      onChange={(e) => setFormSellingPrice(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 sm:col-span-1">
                     <label className="text-xs font-semibold text-text-sec block">
                       Cost Price ($) <span className="text-rose-500">*</span>
                     </label>
@@ -734,17 +822,32 @@ const ProductsPage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 sm:col-span-1">
                     <label className="text-xs font-semibold text-text-sec block">
-                      Initial Stock Level <span className="text-rose-500">*</span>
+                      Quantity <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="number"
                       required
                       min="0"
                       placeholder="e.g. 50"
-                      value={formStock}
-                      onChange={(e) => setFormStock(e.target.value)}
+                      value={formQuantity}
+                      onChange={(e) => setFormQuantity(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-1">
+                    <label className="text-xs font-semibold text-text-sec block">
+                      Minimum Stock <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      placeholder="e.g. 5"
+                      value={formMinimumStock}
+                      onChange={(e) => setFormMinimumStock(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main"
                     />
                   </div>
@@ -768,7 +871,7 @@ const ProductsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Grid 5: Status and Image Mock */}
+              {/* Status and Image Picker */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-text-sec uppercase tracking-wider block">
@@ -800,15 +903,43 @@ const ProductsPage: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-text-sec uppercase tracking-wider block">
-                    Image / Thumbnail (Emoji or URL)
+                    Product Image (URL / Emoji / File Upload)
                   </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 📦 or http://img-url.com"
-                    value={formImage}
-                    onChange={(e) => setFormImage(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. 🎧 or http://img-url.com"
+                      value={formImage}
+                      onChange={(e) => setFormImage(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main"
+                    />
+                    
+                    {/* Simulated File Upload Input */}
+                    <label className="flex items-center justify-center p-2 border border-border-main bg-bg-sec hover:bg-border-main text-text-sec hover:text-text-main rounded-xl cursor-pointer transition-colors duration-150 w-11 h-10 select-none">
+                      <Upload className="w-5 h-5" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  {formImage && formImage.startsWith('data:image') && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-2 py-0.5 font-medium flex items-center">
+                        <Check className="w-3.5 h-3.5 mr-1" />
+                        Local File Loaded
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFormImage('')}
+                        className="text-xs text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -845,7 +976,7 @@ const ProductsPage: React.FC = () => {
             </div>
             
             <p className="text-sm text-text-sec leading-relaxed">
-              Are you sure you want to permanently delete the product <strong className="text-text-main font-semibold">"{productToDelete.name}"</strong>? This will remove all records of this item and cannot be undone.
+              Are you sure you want to permanently delete the product <strong className="text-text-main font-semibold">"{productToDelete.productName}"</strong>? This will remove all records of this item and cannot be undone.
             </p>
 
             <div className="flex justify-end gap-3 pt-2">

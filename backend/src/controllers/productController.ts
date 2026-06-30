@@ -2,18 +2,25 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from './authController';
 import Product from '../models/Product';
 
-// @desc    Get all products
+// @desc    Get all products (with pagination, filtering, search)
 // @route   GET /api/products
 // @access  Private
 export const getProducts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { search, category, status } = req.query;
+    
+    // Pagination parameters
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const query: any = {};
 
     if (search) {
       query.$or = [
-        { name: { $regex: search as string, $options: 'i' } },
-        { sku: { $regex: search as string, $options: 'i' } }
+        { productName: { $regex: search as string, $options: 'i' } },
+        { sku: { $regex: search as string, $options: 'i' } },
+        { barcode: { $regex: search as string, $options: 'i' } }
       ];
     }
 
@@ -21,17 +28,27 @@ export const getProducts = async (req: AuthRequest, res: Response, next: NextFun
       query.category = category as string;
     }
 
-    if (status) {
+    if (status && status !== 'All') {
       query.status = status as string;
     }
 
+    const total = await Product.countDocuments(query);
+
     const products = await Product.find(query)
       .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       success: true,
       count: products.length,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      },
       data: products
     });
   } catch (error) {

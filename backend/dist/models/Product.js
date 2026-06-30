@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const ProductSchema = new mongoose_1.Schema({
-    name: {
+    productName: {
         type: String,
         required: [true, 'Product name is required'],
         trim: true
@@ -47,7 +47,7 @@ const ProductSchema = new mongoose_1.Schema({
         trim: true,
         uppercase: true
     },
-    description: {
+    barcode: {
         type: String,
         trim: true
     },
@@ -60,27 +60,31 @@ const ProductSchema = new mongoose_1.Schema({
         type: String,
         trim: true
     },
-    price: {
+    description: {
+        type: String,
+        trim: true
+    },
+    sellingPrice: {
         type: Number,
         required: [true, 'Selling price is required'],
-        min: [0, 'Price cannot be negative']
+        min: [0, 'Selling price cannot be negative']
     },
     costPrice: {
         type: Number,
         required: [true, 'Cost price is required'],
         min: [0, 'Cost price cannot be negative']
     },
-    stock: {
+    quantity: {
         type: Number,
-        required: [true, 'Stock level is required'],
-        min: [0, 'Stock level cannot be negative'],
+        required: [true, 'Quantity is required'],
+        min: [0, 'Quantity cannot be negative'],
         default: 0
     },
-    unit: {
-        type: String,
-        required: [true, 'Unit of measurement is required'],
-        default: 'pcs',
-        trim: true
+    minimumStock: {
+        type: Number,
+        required: [true, 'Minimum stock level is required'],
+        min: [0, 'Minimum stock cannot be negative'],
+        default: 0
     },
     status: {
         type: String,
@@ -104,5 +108,5 @@ const ProductSchema = new mongoose_1.Schema({
     timestamps: true
 });
 // Index for efficient search
-ProductSchema.index({ name: 'text', sku: 'text' });
+ProductSchema.index({ productName: 'text', sku: 'text', barcode: 'text' });
 exports.default = mongoose_1.default.model('Product', ProductSchema);

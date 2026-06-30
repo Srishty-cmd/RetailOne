@@ -2,15 +2,16 @@ import api from './api';
 
 export interface Product {
   _id: string;
-  name: string;
+  productName: string;
   sku: string;
+  barcode?: string;
   description?: string;
   category: string;
   brand?: string;
-  price: number;
+  sellingPrice: number;
   costPrice: number;
-  stock: number;
-  unit: string;
+  quantity: number;
+  minimumStock: number;
   status: 'Active' | 'Inactive';
   image?: string;
   createdBy?: {
@@ -23,21 +24,40 @@ export interface Product {
 }
 
 export interface ProductInput {
-  name: string;
+  productName: string;
   sku: string;
+  barcode?: string;
   description?: string;
   category: string;
   brand?: string;
-  price: number;
+  sellingPrice: number;
   costPrice: number;
-  stock: number;
-  unit: string;
+  quantity: number;
+  minimumStock: number;
   status: 'Active' | 'Inactive';
   image?: string;
 }
 
-export const getProducts = async (params?: { search?: string; category?: string; status?: string }) => {
-  const response = await api.get<{ success: boolean; count: number; data: Product[] }>('/api/products', { params });
+export interface PaginatedProductsResponse {
+  success: boolean;
+  count: number;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+  data: Product[];
+}
+
+export const getProducts = async (params?: { 
+  search?: string; 
+  category?: string; 
+  status?: string; 
+  page?: number; 
+  limit?: number; 
+}) => {
+  const response = await api.get<PaginatedProductsResponse>('/api/products', { params });
   return response.data;
 };
 

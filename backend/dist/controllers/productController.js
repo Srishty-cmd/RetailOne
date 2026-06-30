@@ -5,31 +5,45 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProductById = exports.getProducts = void 0;
 const Product_1 = __importDefault(require("../models/Product"));
-// @desc    Get all products
+// @desc    Get all products (with pagination, filtering, search)
 // @route   GET /api/products
 // @access  Private
 const getProducts = async (req, res, next) => {
     try {
         const { search, category, status } = req.query;
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
         const query = {};
         if (search) {
             query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { sku: { $regex: search, $options: 'i' } }
+                { productName: { $regex: search, $options: 'i' } },
+                { sku: { $regex: search, $options: 'i' } },
+                { barcode: { $regex: search, $options: 'i' } }
             ];
         }
         if (category && category !== 'All') {
             query.category = category;
         }
-        if (status) {
+        if (status && status !== 'All') {
             query.status = status;
         }
+        const total = await Product_1.default.countDocuments(query);
         const products = await Product_1.default.find(query)
             .populate('createdBy', 'name email')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
         res.status(200).json({
             success: true,
             count: products.length,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            },
             data: products
         });
     }

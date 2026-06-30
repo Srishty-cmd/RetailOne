@@ -1,15 +1,16 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IProduct extends Document {
-  name: string;
+  productName: string;
   sku: string;
-  description?: string;
+  barcode?: string;
   category: string;
   brand?: string;
-  price: number;
+  description?: string;
+  sellingPrice: number;
   costPrice: number;
-  stock: number;
-  unit: string;
+  quantity: number;
+  minimumStock: number;
   status: 'Active' | 'Inactive';
   image?: string;
   createdBy: mongoose.Types.ObjectId;
@@ -18,7 +19,7 @@ export interface IProduct extends Document {
 }
 
 const ProductSchema: Schema = new Schema({
-  name: {
+  productName: {
     type: String,
     required: [true, 'Product name is required'],
     trim: true
@@ -30,7 +31,7 @@ const ProductSchema: Schema = new Schema({
     trim: true,
     uppercase: true
   },
-  description: {
+  barcode: {
     type: String,
     trim: true
   },
@@ -43,27 +44,31 @@ const ProductSchema: Schema = new Schema({
     type: String,
     trim: true
   },
-  price: {
+  description: {
+    type: String,
+    trim: true
+  },
+  sellingPrice: {
     type: Number,
     required: [true, 'Selling price is required'],
-    min: [0, 'Price cannot be negative']
+    min: [0, 'Selling price cannot be negative']
   },
   costPrice: {
     type: Number,
     required: [true, 'Cost price is required'],
     min: [0, 'Cost price cannot be negative']
   },
-  stock: {
+  quantity: {
     type: Number,
-    required: [true, 'Stock level is required'],
-    min: [0, 'Stock level cannot be negative'],
+    required: [true, 'Quantity is required'],
+    min: [0, 'Quantity cannot be negative'],
     default: 0
   },
-  unit: {
-    type: String,
-    required: [true, 'Unit of measurement is required'],
-    default: 'pcs',
-    trim: true
+  minimumStock: {
+    type: Number,
+    required: [true, 'Minimum stock level is required'],
+    min: [0, 'Minimum stock cannot be negative'],
+    default: 0
   },
   status: {
     type: String,
@@ -88,6 +93,6 @@ const ProductSchema: Schema = new Schema({
 });
 
 // Index for efficient search
-ProductSchema.index({ name: 'text', sku: 'text' });
+ProductSchema.index({ productName: 'text', sku: 'text', barcode: 'text' });
 
 export default mongoose.model<IProduct>('Product', ProductSchema);

@@ -36,26 +36,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setDrawerOpen }) => {
   const menuConfig = {
     admin: [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-      { name: 'POS Terminal', path: '/dashboard/pos', icon: MonitorSmartphone },
       { name: 'Products', path: '/dashboard/products', icon: Package },
       { name: 'Inventory', path: '/dashboard/inventory', icon: Archive },
+      { name: 'POS', path: '/dashboard/pos', icon: MonitorSmartphone },
       { name: 'Orders', path: '/dashboard/orders', icon: ShoppingCart },
       { name: 'Stores', path: '/dashboard/stores', icon: StoreIcon },
-      { name: 'Users', path: '/dashboard/users', icon: Users },
       { name: 'Reports', path: '/dashboard/reports', icon: BarChart2 },
       { name: 'Settings', path: '/dashboard/settings', icon: Settings },
     ],
     manager: [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-      { name: 'POS Terminal', path: '/dashboard/pos', icon: MonitorSmartphone },
       { name: 'Products', path: '/dashboard/products', icon: Package },
       { name: 'Inventory', path: '/dashboard/inventory', icon: Archive },
+      { name: 'POS', path: '/dashboard/pos', icon: MonitorSmartphone },
       { name: 'Orders', path: '/dashboard/orders', icon: ShoppingCart },
       { name: 'Reports', path: '/dashboard/reports', icon: BarChart2 },
     ],
     cashier: [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-      { name: 'POS Terminal', path: '/dashboard/pos', icon: MonitorSmartphone },
+      { name: 'POS', path: '/dashboard/pos', icon: MonitorSmartphone },
       { name: 'Orders', path: '/dashboard/orders', icon: ShoppingCart },
       { name: 'Profile', path: '/dashboard/profile', icon: UserCircle },
     ]
