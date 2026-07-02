@@ -6,6 +6,7 @@ import Register from '../pages/Register';
 import DashboardPage from '../pages/DashboardPage';
 import POSPage from '../pages/POSPage';
 import ProductsPage from '../pages/ProductsPage';
+import InventoryPage from '../pages/InventoryPage';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 
@@ -28,7 +29,7 @@ const AppRoutes: React.FC = () => {
           <Route path="pos" element={<POSPage />} />
           {/* Placeholder routes for others */}
           <Route path="products" element={<ProductsPage />} />
-          <Route path="inventory" element={<div className="p-8">Inventory Coming Soon</div>} />
+          <Route path="inventory" element={<InventoryPage />} />
           <Route path="orders" element={<div className="p-8">Orders Coming Soon</div>} />
           <Route path="reports" element={<div className="p-8">Reports Coming Soon</div>} />
         </Route>

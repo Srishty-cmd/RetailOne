@@ -8,6 +8,10 @@ import { connectRedis } from './config/redis';
 import authRoutes from './routes/authRoutes';
 import healthRoutes from './routes/healthRoutes';
 import productRoutes from './routes/productRoutes';
+import inventoryRoutes from './routes/inventoryRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
+import orderRoutes from './routes/orderRoutes';
+import storeRoutes from './routes/storeRoutes';
 import { loggerMiddleware } from './middleware/loggerMiddleware';
 import { securityMiddleware } from './middleware/securityMiddleware';
 import { errorMiddleware } from './middleware/errorMiddleware';
@@ -25,6 +29,10 @@ app.use(securityMiddleware); // Helmet and CORS configured for credentials
 app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/stores', storeRoutes);
 
 // Root Endpoint
 app.get('/', (req: Request, res: Response) => {

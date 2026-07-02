@@ -23,7 +23,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  Upload
+  Upload,
+  Eye
 } from 'lucide-react';
 
 interface Toast {
@@ -64,6 +65,8 @@ const ProductsPage: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState<boolean>(false);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [modalLoading, setModalLoading] = useState<boolean>(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -225,6 +228,12 @@ const ProductsPage: React.FC = () => {
     setFormImage(product.image || '');
     setModalError(null);
     setIsModalOpen(true);
+  };
+
+  // Open View Modal
+  const handleOpenViewModal = (product: Product) => {
+    setViewingProduct(product);
+    setIsViewModalOpen(true);
   };
 
   // Open Delete Confirmation
@@ -482,7 +491,7 @@ const ProductsPage: React.FC = () => {
                     <th className="px-6 py-4 text-right">Selling Price</th>
                     <th className="px-6 py-4 text-center">Available Stock</th>
                     <th className="px-6 py-4 text-center">Status</th>
-                    {canModify && <th className="px-6 py-4 text-right">Actions</th>}
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-main text-sm text-text-main">
@@ -561,28 +570,35 @@ const ProductsPage: React.FC = () => {
                             {product.status}
                           </span>
                         </td>
-                        {canModify && (
-                          <td className="px-6 py-4 text-right whitespace-nowrap">
-                            <div className="flex justify-end gap-1.5">
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenViewModal(product)}
+                              title="View Product"
+                              className="p-2 hover:bg-primary-light hover:text-primary rounded-lg text-text-sec transition-colors cursor-pointer"
+                            >
+                              <Eye className="w-4.5 h-4.5" />
+                            </button>
+                            {canModify && (
                               <button
                                 onClick={() => handleOpenEditModal(product)}
                                 title="Edit Product"
                                 className="p-2 hover:bg-primary-light hover:text-primary rounded-lg text-text-sec transition-colors cursor-pointer"
                               >
-                                <Edit className="w-4 h-4" />
+                                <Edit className="w-4.5 h-4.5" />
                               </button>
-                              {canDelete && (
-                                <button
-                                  onClick={() => handleOpenDeleteModal(product)}
-                                  title="Delete Product"
-                                  className="p-2 hover:bg-rose-50 hover:text-rose-600 rounded-lg text-text-sec transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
+                            )}
+                            {canDelete && (
+                              <button
+                                onClick={() => handleOpenDeleteModal(product)}
+                                title="Delete Product"
+                                className="p-2 hover:bg-rose-50 hover:text-rose-600 rounded-lg text-text-sec transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4.5 h-4.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -994,6 +1010,186 @@ const ProductsPage: React.FC = () => {
               >
                 {modalLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Delete Product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Product Details Modal */}
+      {isViewModalOpen && viewingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-xs transition-opacity duration-300">
+          <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-border-main overflow-hidden max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-border-main bg-bg-sec/50">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-display font-bold text-text-main">
+                  Product Details
+                </h2>
+              </div>
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="p-1.5 hover:bg-border-main rounded-lg text-text-sec cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Product Info Summary Row */}
+              <div className="flex flex-col sm:flex-row gap-5 items-start">
+                <div className="w-24 h-24 rounded-2xl bg-bg-sec border border-border-main flex items-center justify-center shadow-inner overflow-hidden shrink-0 select-none">
+                  {viewingProduct.image ? (
+                    viewingProduct.image.startsWith('http') || viewingProduct.image.startsWith('data:image') ? (
+                      <img src={viewingProduct.image} alt={viewingProduct.productName} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-4xl">{viewingProduct.image}</span>
+                    )
+                  ) : (
+                    <Package className="w-12 h-12 text-text-sec" />
+                  )}
+                </div>
+                
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h3 className="text-xl font-display font-bold text-text-main">{viewingProduct.productName}</h3>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                      viewingProduct.status === 'Active'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                        : 'bg-gray-100 border-gray-200 text-gray-700'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                        viewingProduct.status === 'Active' ? 'bg-emerald-500' : 'bg-gray-400'
+                      }`} />
+                      {viewingProduct.status}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap text-xs font-mono text-text-sec">
+                    <span className="bg-bg-sec border border-border-main px-2 py-0.5 rounded">SKU: {viewingProduct.sku}</span>
+                    {viewingProduct.barcode && (
+                      <span className="bg-bg-sec border border-border-main px-2 py-0.5 rounded">Barcode: {viewingProduct.barcode}</span>
+                    )}
+                  </div>
+                  {viewingProduct.brand && (
+                    <p className="text-sm text-text-sec mt-1">
+                      Brand: <strong className="text-text-main font-semibold">{viewingProduct.brand}</strong>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Description */}
+              {viewingProduct.description && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-text-sec uppercase tracking-wider">Description</h4>
+                  <p className="text-sm text-text-main bg-bg-sec/40 p-4 border border-border-main rounded-xl leading-relaxed whitespace-pre-wrap">
+                    {viewingProduct.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="p-3 bg-bg-sec/30 border border-border-main rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-text-sec uppercase tracking-wider block">Category</span>
+                  <span className="text-sm font-semibold text-text-main truncate block">{viewingProduct.category}</span>
+                </div>
+                
+                <div className="p-3 bg-bg-sec/30 border border-border-main rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-text-sec uppercase tracking-wider block">Selling Price</span>
+                  <span className="text-sm font-bold text-text-main block">${viewingProduct.sellingPrice.toFixed(2)}</span>
+                </div>
+
+                <div className="p-3 bg-bg-sec/30 border border-border-main rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-text-sec uppercase tracking-wider block">Cost Price</span>
+                  <span className="text-sm font-bold text-text-main block">${viewingProduct.costPrice.toFixed(2)}</span>
+                </div>
+
+                <div className="p-3 bg-bg-sec/30 border border-border-main rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-text-sec uppercase tracking-wider block">Estimated Profit</span>
+                  <span className={`text-sm font-bold block ${
+                    viewingProduct.sellingPrice - viewingProduct.costPrice > 0 ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
+                    ${(viewingProduct.sellingPrice - viewingProduct.costPrice).toFixed(2)} 
+                    <span className="text-xs font-medium ml-1">
+                      ({viewingProduct.sellingPrice > 0 
+                        ? (((viewingProduct.sellingPrice - viewingProduct.costPrice) / viewingProduct.sellingPrice) * 100).toFixed(0) 
+                        : '0'}%)
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Stock and Status Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 bg-bg-sec/20 border border-border-main rounded-xl space-y-2">
+                  <span className="text-xs font-bold text-text-sec uppercase tracking-wider block">Inventory Details</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-text-sec">Available Quantity:</span>
+                    <span className={`font-bold ${
+                      viewingProduct.quantity <= 0 
+                        ? 'text-rose-600' 
+                        : viewingProduct.quantity <= viewingProduct.minimumStock 
+                          ? 'text-amber-600' 
+                          : 'text-text-main'
+                    }`}>{viewingProduct.quantity}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-text-sec">Minimum Stock Threshold:</span>
+                    <span className="font-semibold text-text-main">{viewingProduct.minimumStock}</span>
+                  </div>
+                  {viewingProduct.quantity <= viewingProduct.minimumStock && (
+                    <div className={`text-xs px-2.5 py-1.5 border rounded-lg flex items-center gap-1.5 font-medium ${
+                      viewingProduct.quantity <= 0 
+                        ? 'bg-rose-50 border-rose-100 text-rose-700' 
+                        : 'bg-amber-50 border-amber-100 text-amber-700'
+                    }`}>
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{viewingProduct.quantity <= 0 ? 'Stock depleted! Reorder immediately.' : 'Low stock warning! Item is below safety stock level.'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-bg-sec/20 border border-border-main rounded-xl space-y-2">
+                  <span className="text-xs font-bold text-text-sec uppercase tracking-wider block">System Metadata</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-text-sec">Created By:</span>
+                    <span className="font-semibold text-text-main truncate max-w-[150px]" title={viewingProduct.createdBy?.email}>
+                      {viewingProduct.createdBy?.name || 'System'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-text-sec">Created At:</span>
+                    <span className="text-text-main">{new Date(viewingProduct.createdAt).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-text-sec">Last Updated:</span>
+                    <span className="text-text-main">{new Date(viewingProduct.updatedAt).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-4 border-t border-border-main flex justify-end gap-3 bg-bg-sec/30 p-6">
+              {canModify && (
+                <button
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    handleOpenEditModal(viewingProduct);
+                  }}
+                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-xl cursor-pointer transition-colors shadow-xs"
+                >
+                  Edit Product
+                </button>
+              )}
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="px-4 py-2 border border-border-main hover:bg-bg-sec text-text-main text-sm font-medium rounded-xl cursor-pointer transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>

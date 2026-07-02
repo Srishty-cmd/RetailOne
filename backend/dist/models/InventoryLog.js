@@ -34,67 +34,61 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const InventorySchema = new mongoose_1.Schema({
+const InventoryLogSchema = new mongoose_1.Schema({
     product: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Product',
-        required: [true, 'Product reference is required'],
-        unique: true
+        required: [true, 'Product reference is required']
     },
-    currentStock: {
+    inventory: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Inventory',
+        required: [true, 'Inventory reference is required']
+    },
+    type: {
+        type: String,
+        enum: ['Stock In', 'Stock Out'],
+        required: [true, 'Transaction type is required']
+    },
+    quantity: {
         type: Number,
-        required: [true, 'Current stock quantity is required'],
-        min: [0, 'Current stock cannot be negative'],
-        default: 0
+        required: [true, 'Quantity is required'],
+        min: [1, 'Quantity must be at least 1']
     },
-    minimumStock: {
+    remainingStock: {
         type: Number,
-        required: [true, 'Minimum stock level is required'],
-        min: [0, 'Minimum stock cannot be negative'],
-        default: 0
+        required: [true, 'Remaining stock after transaction is required'],
+        min: [0, 'Remaining stock cannot be negative']
     },
-    maximumStock: {
-        type: Number,
-        required: [true, 'Maximum stock level is required'],
-        min: [0, 'Maximum stock cannot be negative'],
-        default: 0
+    reason: {
+        type: String,
+        enum: ['Sales', 'Damaged', 'Lost', 'Expired', 'Other'],
+        required: function () {
+            return this.type === 'Stock Out';
+        }
     },
-    reorderLevel: {
-        type: Number,
-        required: [true, 'Reorder level quantity is required'],
-        min: [0, 'Reorder level cannot be negative'],
-        default: 0
-    },
-    warehouseLocation: {
+    supplier: {
         type: String,
         trim: true
     },
-    lastRestocked: {
-        type: Date
-    },
-    status: {
+    invoiceNumber: {
         type: String,
-        enum: ['In Stock', 'Low Stock', 'Out of Stock'],
-        default: 'In Stock'
+        trim: true
+    },
+    notes: {
+        type: String,
+        trim: true
+    },
+    date: {
+        type: Date,
+        default: Date.now
     },
     createdBy: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
-        required: [true, 'Created by reference is required']
+        required: [true, 'User reference is required']
     }
 }, {
     timestamps: true
 });
-// Middleware to automatically compute status before saving
-InventorySchema.pre('save', function () {
-    if (this.currentStock === 0) {
-        this.status = 'Out of Stock';
-    }
-    else if (this.currentStock <= this.minimumStock) {
-        this.status = 'Low Stock';
-    }
-    else {
-        this.status = 'In Stock';
-    }
-});
-exports.default = mongoose_1.default.model('Inventory', InventorySchema);
+exports.default = mongoose_1.default.model('InventoryLog', InventoryLogSchema);
