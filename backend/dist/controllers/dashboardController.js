@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getDashboardStats = void 0;
 const Product_1 = __importDefault(require("../models/Product"));
 const Order_1 = __importDefault(require("../models/Order"));
+const OrderItem_1 = __importDefault(require("../models/OrderItem"));
 const Inventory_1 = __importDefault(require("../models/Inventory"));
 const InventoryLog_1 = __importDefault(require("../models/InventoryLog"));
 const User_1 = __importDefault(require("../models/User"));
@@ -28,6 +29,67 @@ const getDashboardStats = async (req, res, next) => {
         const lowStock = await Inventory_1.default.countDocuments({ status: 'Low Stock' });
         // Fetch total registered users
         const totalUsers = await User_1.default.countDocuments();
+        // Calculate today's stats (Transactions, items sold, revenue)
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+        const todayOrders = await Order_1.default.countDocuments({
+            status: 'Completed',
+            createdAt: { $gte: startOfToday, $lte: endOfToday }
+        });
+        const todayRevenueResult = await Order_1.default.aggregate([
+            { $match: { status: 'Completed', createdAt: { $gte: startOfToday, $lte: endOfToday } } },
+            { $group: { _id: null, totalRevenue: { $sum: '$total' } } }
+        ]);
+        const todayRevenue = todayRevenueResult.length > 0 ? todayRevenueResult[0].totalRevenue : 0;
+        // Calculate today's items sold
+        const todayItemsResult = await OrderItem_1.default.aggregate([
+            {
+                $lookup: {
+                    from: 'orders',
+                    localField: 'order',
+                    foreignField: '_id',
+                    as: 'orderInfo'
+                }
+            },
+            { $unwind: '$orderInfo' },
+            {
+                $match: {
+                    'orderInfo.status': 'Completed',
+                    'orderInfo.createdAt': { $gte: startOfToday, $lte: endOfToday }
+                }
+            },
+            { $group: { _id: null, totalItems: { $sum: '$quantity' } } }
+        ]);
+        const todayItemsSold = todayItemsResult.length > 0 ? todayItemsResult[0].totalItems : 0;
+        // Calculate weekly sales history (last 7 days, including today)
+        const salesHistory = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateString = d.toISOString().split('T')[0];
+            const startOfDay = new Date(d);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(d);
+            endOfDay.setHours(23, 59, 59, 999);
+            const dayRevenueResult = await Order_1.default.aggregate([
+                { $match: { status: 'Completed', createdAt: { $gte: startOfDay, $lte: endOfDay } } },
+                { $group: { _id: null, totalRevenue: { $sum: '$total' } } }
+            ]);
+            const revenue = dayRevenueResult.length > 0 ? dayRevenueResult[0].totalRevenue : 0;
+            const count = await Order_1.default.countDocuments({
+                status: 'Completed',
+                createdAt: { $gte: startOfDay, $lte: endOfDay }
+            });
+            const label = d.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit' });
+            salesHistory.push({
+                date: dateString,
+                label,
+                revenue,
+                count
+            });
+        }
         // Fetch recent activity from InventoryLog
         const recentLogs = await InventoryLog_1.default.find()
             .populate('product', 'productName')
@@ -66,6 +128,10 @@ const getDashboardStats = async (req, res, next) => {
                 totalInventory,
                 lowStock,
                 totalUsers,
+                todayOrders,
+                todayRevenue,
+                todayItemsSold,
+                salesHistory,
                 recentActivities,
                 alerts
             }

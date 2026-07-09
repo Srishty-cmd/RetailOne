@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Loader2, Calendar, User, DollarSign, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShoppingBag, Loader2, Calendar, User, DollarSign, RefreshCw, AlertCircle } from 'lucide-react';
 import { getOrders, Order } from '../services/orderService';
 
 const OrdersPage: React.FC = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +53,7 @@ const OrdersPage: React.FC = () => {
         </div>
       ) : error ? (
         <div className="bg-white p-12 border border-border-main rounded-2xl shadow-xs text-center max-w-md mx-auto space-y-3">
+          <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
           <p className="text-sm text-rose-600 font-semibold">{error}</p>
           <button 
             onClick={fetchOrdersData}
@@ -60,16 +63,22 @@ const OrdersPage: React.FC = () => {
           </button>
         </div>
       ) : orders.length === 0 ? (
-        <div className="bg-white p-16 border border-border-main rounded-2xl shadow-xs flex flex-col items-center justify-center text-center space-y-5 max-w-md mx-auto">
+        <div className="bg-white p-16 border border-border-main rounded-2xl shadow-xs flex flex-col items-center justify-center text-center space-y-5 max-w-md mx-auto animate-fade-in">
           <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-primary border border-emerald-100 shadow-sm">
             <ShoppingBag className="w-10 h-10" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-text-main font-display">No Orders Yet</h3>
+            <h3 className="text-lg font-semibold text-text-main font-display text-center w-full block">No Orders Yet</h3>
             <p className="text-sm text-text-sec mt-1.5 leading-relaxed">
               When sales checkout is completed in the POS screen, real orders will automatically populate here.
             </p>
           </div>
+          <button
+            onClick={() => navigate('/dashboard/pos')}
+            className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-xl shadow-xs cursor-pointer duration-150 active:scale-95"
+          >
+            Create First Order
+          </button>
         </div>
       ) : (
         <div className="bg-white border border-border-main rounded-2xl shadow-xs overflow-hidden">
@@ -112,7 +121,7 @@ const OrdersPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center font-bold text-text-main">
-                      ₹{order.total.toLocaleString()}
+                      ${order.total.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">

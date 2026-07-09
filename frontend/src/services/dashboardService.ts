@@ -20,6 +20,12 @@ export interface DashboardStats {
     currentStock: number;
     minimumStock: number;
   }[];
+  salesHistory: {
+    date: string;
+    label: string;
+    revenue: number;
+    count: number;
+  }[];
 }
 
 export const getDashboardStats = async () => {

@@ -423,11 +423,13 @@ const InventoryPage: React.FC = () => {
               <PackageOpen className="w-10 h-10" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-text-main font-display">No Inventory Items Found</h3>
+              <h3 className="text-lg font-semibold text-text-main font-display text-center w-full block">
+                {searchQuery || selectedCategory !== 'All' || selectedStatus !== 'All' ? 'No Inventory Found' : 'No Inventory Available'}
+              </h3>
               <p className="text-sm text-text-sec mt-1.5 leading-relaxed">
                 {searchQuery || selectedCategory !== 'All' || selectedStatus !== 'All'
                   ? 'Try modifying your search queries or filter parameters.'
-                  : 'Start adding items to your product list to begin tracking warehouse inventories.'}
+                  : 'Inventory will appear after products are created.'}
               </p>
             </div>
           </div>

@@ -33,7 +33,7 @@ interface Toast {
   id: number;
 }
 
-const PRESET_CATEGORIES = ['Electronics', 'Furniture', 'Accessories', 'Apparel', 'Food & Beverage', 'Cosmetics', 'Fitness', 'Others'];
+const PRESET_CATEGORIES: string[] = [];
 
 const ProductsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -186,9 +186,9 @@ const ProductsPage: React.FC = () => {
     setFormProductName('');
     setFormSku('');
     setFormBarcode('');
-    setFormCategory('Electronics');
+    setFormCategory(categories.length > 0 ? categories[0] : '');
     setFormCustomCategory('');
-    setFormIsCustomCategory(false);
+    setFormIsCustomCategory(categories.length === 0);
     setFormBrand('');
     setFormDescription('');
     setFormSellingPrice('');
@@ -209,7 +209,7 @@ const ProductsPage: React.FC = () => {
     setFormSku(product.sku);
     setFormBarcode(product.barcode || '');
     
-    if (PRESET_CATEGORIES.includes(product.category)) {
+    if (categories.includes(product.category)) {
       setFormCategory(product.category);
       setFormIsCustomCategory(false);
     } else {
@@ -458,15 +458,17 @@ const ProductsPage: React.FC = () => {
           </div>
         ) : products.length === 0 ? (
           <div className="p-16 flex flex-col items-center justify-center text-center space-y-6 max-w-md mx-auto">
-            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-primary border border-emerald-100 shadow-sm animate-pulse">
+            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-primary border border-emerald-100 shadow-sm">
               <Package className="w-10 h-10" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-text-main font-display">No Products Found</h3>
+              <h3 className="text-lg font-semibold text-text-main font-display text-center w-full block">
+                {searchQuery || selectedCategory !== 'All' || selectedStatus !== 'All' ? 'No Products Found' : 'No Products Yet'}
+              </h3>
               <p className="text-sm text-text-sec mt-2 leading-relaxed">
                 {searchQuery || selectedCategory !== 'All' || selectedStatus !== 'All'
                   ? 'Try modifying your search queries or filter parameters.'
-                  : 'Start adding items to catalog to begin checkout sales and inventory counts.'}
+                  : 'Create your first product to begin managing inventory.'}
               </p>
             </div>
             {canModify && !searchQuery && selectedCategory === 'All' && selectedStatus === 'All' && (
@@ -474,7 +476,7 @@ const ProductsPage: React.FC = () => {
                 onClick={handleOpenAddModal}
                 className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-xl shadow-xs cursor-pointer duration-150 active:scale-95"
               >
-                Add First Product
+                Add Product
               </button>
             )}
           </div>
@@ -503,14 +505,13 @@ const ProductsPage: React.FC = () => {
                       <tr key={product._id} className="hover:bg-bg-sec/40 transition-colors duration-150 group">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="w-12 h-12 rounded-lg bg-bg-sec border border-border-main flex items-center justify-center shadow-inner overflow-hidden shrink-0 select-none">
-                            {product.image ? (
-                              product.image.startsWith('http') || product.image.startsWith('data:image') ? (
-                                <img src={product.image} alt={product.productName} className="w-full h-full object-cover" />
-                              ) : (
-                                <span className="text-xl">{product.image}</span>
-                              )
+                            {product.image && (product.image.startsWith('http') || product.image.startsWith('data:image')) ? (
+                              <img src={product.image} alt={product.productName} className="w-full h-full object-cover" />
                             ) : (
-                              <Package className="w-6 h-6 text-text-sec" />
+                              <div className="flex flex-col items-center justify-center text-[10px] text-text-sec font-medium">
+                                <Package className="w-5 h-5 mb-0.5 text-text-sec/60" />
+                                <span>No Image</span>
+                              </div>
                             )}
                           </div>
                         </td>
@@ -538,7 +539,7 @@ const ProductsPage: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right font-medium whitespace-nowrap">
-                          ${product.sellingPrice.toFixed(2)}
+                          ₹{product.sellingPrice.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-center whitespace-nowrap">
                           <div className="flex flex-col items-center">
@@ -729,46 +730,14 @@ const ProductsPage: React.FC = () => {
                   <label className="text-xs font-semibold text-text-sec uppercase tracking-wider block">
                     Category <span className="text-rose-500">*</span>
                   </label>
-                  {formIsCustomCategory ? (
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Type category..."
-                        value={formCustomCategory}
-                        onChange={(e) => setFormCustomCategory(e.target.value)}
-                        className="w-full pl-3 pr-8 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormIsCustomCategory(false);
-                          setFormCategory(PRESET_CATEGORIES[0]);
-                        }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-sec hover:text-rose-600 cursor-pointer"
-                        title="Select preset category"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <select
-                      value={formCategory}
-                      onChange={(e) => {
-                        if (e.target.value === 'Custom') {
-                          setFormIsCustomCategory(true);
-                          setFormCustomCategory('');
-                        } else {
-                          setFormCategory(e.target.value);
-                        }
-                      }}
-                      className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main cursor-pointer"
-                    >
-                      {PRESET_CATEGORIES.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                      <option value="Custom">+ Create New Category</option>
-                    </select>
-                  )}
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Electronics"
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-border-main focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-main"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -808,7 +777,7 @@ const ProductsPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="space-y-1.5 sm:col-span-1">
                     <label className="text-xs font-semibold text-text-sec block">
-                      Selling Price ($) <span className="text-rose-500">*</span>
+                      Selling Price (₹) <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -824,7 +793,7 @@ const ProductsPage: React.FC = () => {
 
                   <div className="space-y-1.5 sm:col-span-1">
                     <label className="text-xs font-semibold text-text-sec block">
-                      Cost Price ($) <span className="text-rose-500">*</span>
+                      Cost Price (₹) <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -919,12 +888,12 @@ const ProductsPage: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-text-sec uppercase tracking-wider block">
-                    Product Image (URL / Emoji / File Upload)
+                    Product Image (Upload Image / URL)
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="e.g. 🎧 or http://img-url.com"
+                      placeholder="e.g. http://img-url.com"
                       value={formImage}
                       onChange={(e) => setFormImage(e.target.value)}
                       className="flex-1 px-3 py-2 bg-white border border-border-main focus:border-primary rounded-xl text-sm outline-none text-text-main"
@@ -1099,12 +1068,12 @@ const ProductsPage: React.FC = () => {
                 
                 <div className="p-3 bg-bg-sec/30 border border-border-main rounded-xl space-y-1">
                   <span className="text-[10px] font-bold text-text-sec uppercase tracking-wider block">Selling Price</span>
-                  <span className="text-sm font-bold text-text-main block">${viewingProduct.sellingPrice.toFixed(2)}</span>
+                  <span className="text-sm font-bold text-text-main block">₹{viewingProduct.sellingPrice.toLocaleString()}</span>
                 </div>
 
                 <div className="p-3 bg-bg-sec/30 border border-border-main rounded-xl space-y-1">
                   <span className="text-[10px] font-bold text-text-sec uppercase tracking-wider block">Cost Price</span>
-                  <span className="text-sm font-bold text-text-main block">${viewingProduct.costPrice.toFixed(2)}</span>
+                  <span className="text-sm font-bold text-text-main block">₹{viewingProduct.costPrice.toLocaleString()}</span>
                 </div>
 
                 <div className="p-3 bg-bg-sec/30 border border-border-main rounded-xl space-y-1">
@@ -1112,7 +1081,7 @@ const ProductsPage: React.FC = () => {
                   <span className={`text-sm font-bold block ${
                     viewingProduct.sellingPrice - viewingProduct.costPrice > 0 ? 'text-emerald-600' : 'text-rose-600'
                   }`}>
-                    ${(viewingProduct.sellingPrice - viewingProduct.costPrice).toFixed(2)} 
+                    ₹{(viewingProduct.sellingPrice - viewingProduct.costPrice).toFixed(2)} 
                     <span className="text-xs font-medium ml-1">
                       ({viewingProduct.sellingPrice > 0 
                         ? (((viewingProduct.sellingPrice - viewingProduct.costPrice) / viewingProduct.sellingPrice) * 100).toFixed(0) 
