@@ -79,7 +79,7 @@ export const removeFromCart = async (productId: string) => {
   return response.data;
 };
 
-export const checkoutPOS = async (data: { paymentMethod: 'Cash' | 'Card' | 'UPI'; discount?: number; tax?: number }) => {
+export const checkoutPOS = async (data: { paymentMethod: 'Cash' | 'Card' | 'UPI'; discount?: number; tax?: number; customerName?: string }) => {
   const response = await api.post<CheckoutResponse>('/api/pos/checkout', data);
   return response.data;
 };
