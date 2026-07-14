@@ -12,6 +12,7 @@ import inventoryRoutes from './routes/inventoryRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import orderRoutes from './routes/orderRoutes';
 import storeRoutes from './routes/storeRoutes';
+import posRoutes from './routes/posRoutes';
 import { loggerMiddleware } from './middleware/loggerMiddleware';
 import { securityMiddleware } from './middleware/securityMiddleware';
 import { errorMiddleware } from './middleware/errorMiddleware';
@@ -33,6 +34,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/stores', storeRoutes);
+app.use('/api/pos', posRoutes);
 
 // Root Endpoint
 app.get('/', (req: Request, res: Response) => {

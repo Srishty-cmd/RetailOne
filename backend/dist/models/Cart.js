@@ -34,14 +34,28 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const OrderSchema = new mongoose_1.Schema({
-    store: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Store', required: true },
-    user: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    total: { type: Number, required: true },
-    status: { type: String, default: 'Pending', enum: ['Pending', 'Completed', 'Cancelled'] },
-    paymentMethod: { type: String, enum: ['Cash', 'Card', 'UPI'], default: 'Cash' },
-    subtotal: { type: Number },
-    discount: { type: Number, default: 0 },
-    tax: { type: Number, default: 0 }
-}, { timestamps: true });
-exports.default = mongoose_1.default.model('Order', OrderSchema);
+const CartSchema = new mongoose_1.Schema({
+    user: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+        unique: true
+    },
+    items: [
+        {
+            product: {
+                type: mongoose_1.Schema.Types.ObjectId,
+                ref: 'Product',
+                required: true
+            },
+            quantity: {
+                type: Number,
+                required: true,
+                min: [1, 'Quantity must be at least 1']
+            }
+        }
+    ]
+}, {
+    timestamps: true
+});
+exports.default = mongoose_1.default.model('Cart', CartSchema);
