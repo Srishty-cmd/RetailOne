@@ -206,7 +206,7 @@ const checkout = async (req, res, next) => {
         if (!req.user) {
             return res.status(401).json({ success: false, message: 'Not authorized' });
         }
-        const { paymentMethod, discount = 0, tax = 0 } = req.body;
+        const { paymentMethod, discount = 0, tax = 0, customerName = 'Walk-in Customer' } = req.body;
         if (!paymentMethod || !['Cash', 'Card', 'UPI'].includes(paymentMethod)) {
             return res.status(400).json({ success: false, message: 'Valid payment method (Cash, Card, UPI) is required' });
         }
@@ -269,6 +269,7 @@ const checkout = async (req, res, next) => {
         const order = await Order_1.default.create({
             store: storeId,
             user: req.user.userId,
+            customerName,
             total: finalTotal,
             status: 'Completed',
             paymentMethod,

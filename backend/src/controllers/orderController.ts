@@ -19,20 +19,21 @@ export const getOrders = async (req: AuthRequest, res: Response, next: NextFunct
     // Search by customer name or Order ID substring
     if (search) {
       const searchStr = search as string;
+      const escapedStr = searchStr.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
       const isHex = /^[0-9a-fA-F]+$/.test(searchStr);
       if (isHex && searchStr.length === 24) {
         query.$or = [
           { _id: searchStr },
-          { customerName: { $regex: searchStr, $options: 'i' } }
+          { customerName: { $regex: escapedStr, $options: 'i' } }
         ];
       } else {
         query.$or = [
-          { customerName: { $regex: searchStr, $options: 'i' } },
+          { customerName: { $regex: escapedStr, $options: 'i' } },
           {
             $expr: {
               $regexMatch: {
                 input: { $toString: "$_id" },
-                regex: searchStr,
+                regex: escapedStr,
                 options: "i"
               }
             }
@@ -40,6 +41,7 @@ export const getOrders = async (req: AuthRequest, res: Response, next: NextFunct
         ];
       }
     }
+
 
     // Filter by payment method
     if (paymentMethod && paymentMethod !== 'All') {
@@ -282,7 +284,7 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response, next: N
             type: 'Stock In',
             quantity: item.quantity,
             remainingStock: inv.currentStock,
-            reason: status === 'Returned' ? 'Return' : 'Restock',
+            reason: 'Other',
             notes: `Order status updated to ${status} - Order ID: ${order._id}`,
             createdBy: req.user?.userId
           });
@@ -354,7 +356,7 @@ export const deleteOrder = async (req: AuthRequest, res: Response, next: NextFun
             type: 'Stock In',
             quantity: item.quantity,
             remainingStock: inv.currentStock,
-            reason: 'Restock',
+            reason: 'Other',
             notes: `Order Deleted - Order ID: ${order._id}`,
             createdBy: req.user?.userId
           });

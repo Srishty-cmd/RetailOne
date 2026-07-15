@@ -37,8 +37,9 @@ const mongoose_1 = __importStar(require("mongoose"));
 const OrderSchema = new mongoose_1.Schema({
     store: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Store', required: true },
     user: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    customerName: { type: String, default: 'Walk-in Customer' },
     total: { type: Number, required: true },
-    status: { type: String, default: 'Pending', enum: ['Pending', 'Completed', 'Cancelled'] },
+    status: { type: String, default: 'Pending', enum: ['Pending', 'Completed', 'Cancelled', 'Returned'] },
     paymentMethod: { type: String, enum: ['Cash', 'Card', 'UPI'], default: 'Cash' },
     subtotal: { type: Number },
     discount: { type: Number, default: 0 },
