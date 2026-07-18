@@ -41,6 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setDrawerOpen }) => {
       { name: 'POS', path: '/dashboard/pos', icon: MonitorSmartphone },
       { name: 'Orders', path: '/dashboard/orders', icon: ShoppingCart },
       { name: 'Stores', path: '/dashboard/stores', icon: StoreIcon },
+      { name: 'Users', path: '/dashboard/users', icon: Users },
       { name: 'Reports', path: '/dashboard/reports', icon: BarChart2 },
       { name: 'Settings', path: '/dashboard/settings', icon: Settings },
     ],

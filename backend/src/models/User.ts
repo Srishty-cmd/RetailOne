@@ -7,6 +7,8 @@ export interface IUser extends Document {
   password?: string;
   role: 'Admin' | 'Inventory Manager' | 'Cashier';
   store?: mongoose.Types.ObjectId | null;
+  phone?: string;
+  status?: 'Active' | 'Inactive';
   resetPasswordToken?: string | null;
   resetPasswordExpire?: Date | null;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -45,6 +47,15 @@ const UserSchema: Schema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Store',
     default: null
+  },
+  phone: {
+    type: String,
+    default: ''
+  },
+  status: {
+    type: String,
+    enum: ['Active', 'Inactive'],
+    default: 'Active'
   },
   resetPasswordToken: {
     type: String,

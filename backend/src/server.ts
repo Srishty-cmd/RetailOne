@@ -13,6 +13,8 @@ import dashboardRoutes from './routes/dashboardRoutes';
 import orderRoutes from './routes/orderRoutes';
 import storeRoutes from './routes/storeRoutes';
 import posRoutes from './routes/posRoutes';
+import reportRoutes from './routes/reportRoutes';
+import userRoutes from './routes/userRoutes';
 import { loggerMiddleware } from './middleware/loggerMiddleware';
 import { securityMiddleware } from './middleware/securityMiddleware';
 import { errorMiddleware } from './middleware/errorMiddleware';
@@ -35,6 +37,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/pos', posRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/users', userRoutes);
 
 // Root Endpoint
 app.get('/', (req: Request, res: Response) => {

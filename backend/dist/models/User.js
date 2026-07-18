@@ -70,6 +70,15 @@ const UserSchema = new mongoose_1.Schema({
         ref: 'Store',
         default: null
     },
+    phone: {
+        type: String,
+        default: ''
+    },
+    status: {
+        type: String,
+        enum: ['Active', 'Inactive'],
+        default: 'Active'
+    },
     resetPasswordToken: {
         type: String,
         default: null,

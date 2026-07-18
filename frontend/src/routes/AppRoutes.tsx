@@ -10,6 +10,7 @@ import InventoryPage from '../pages/InventoryPage';
 import OrdersPage from '../pages/OrdersPage';
 import StoresPage from '../pages/StoresPage';
 import ReportsPage from '../pages/ReportsPage';
+import UsersPage from '../pages/UsersPage';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 
@@ -36,6 +37,7 @@ const AppRoutes: React.FC = () => {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="stores" element={<StoresPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="users" element={<UsersPage />} />
         </Route>
       </Route>
     </Routes>
